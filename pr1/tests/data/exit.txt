@@ -1,0 +1,4 @@
+# exit останавливает выполнение скрипта
+ls first
+exit
+ls never

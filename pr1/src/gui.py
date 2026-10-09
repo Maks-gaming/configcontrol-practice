@@ -2,6 +2,7 @@
 
 import tkinter as tk
 
+from src.config import config_lines
 from src.shell import Shell, get_user_host
 
 FONT = ("Monospace", 11)
@@ -13,9 +14,10 @@ ERROR_COLOR = "tomato"
 class EmulatorWindow:
     """Окно эмулятора: поле вывода и строка ввода."""
 
-    def __init__(self, shell=None):
-        """Создать окно и виджеты."""
-        self.shell = shell or Shell()
+    def __init__(self, config):
+        """Создать окно и виджеты, запомнить параметры запуска."""
+        self.config = config
+        self.shell = Shell()
         self.root = tk.Tk()
         self.root.title(f"Эмулятор - [{get_user_host()}]")
         self.output = tk.Text(
@@ -32,10 +34,10 @@ class EmulatorWindow:
         self.entry.bind("<Return>", self.on_enter)
         self.entry.focus_set()
 
-    def write(self, text, tag=None):
-        """Добавить строку текста в поле вывода."""
+    def write(self, text, ok=True):
+        """Добавить строку в поле вывода, ошибки выделяются цветом."""
         self.output.configure(state=tk.NORMAL)
-        self.output.insert(tk.END, text + "\n", tag)
+        self.output.insert(tk.END, text + "\n", None if ok else "error")
         self.output.configure(state=tk.DISABLED)
         self.output.see(tk.END)
 
@@ -44,9 +46,21 @@ class EmulatorWindow:
         self.write(self.shell.prompt() + line)
         text, ok = self.shell.run_line(line)
         if text:
-            self.write(text, None if ok else "error")
+            self.write(text, ok)
+        self.close_if_stopped()
+
+    def close_if_stopped(self):
+        """Закрыть окно, если оболочка завершила работу."""
         if not self.shell.running:
             self.root.destroy()
+
+    def start(self):
+        """Показать параметры запуска и выполнить стартовый скрипт."""
+        for line in config_lines(self.config):
+            self.write(line)
+        if self.config.script:
+            self.shell.run_script(self.config.script, self.write)
+            self.close_if_stopped()
 
     def on_enter(self, _event):
         """Обработать нажатие Enter в строке ввода."""
@@ -55,5 +69,6 @@ class EmulatorWindow:
         self.run_command(line)
 
     def run(self):
-        """Запустить главный цикл окна."""
+        """Запустить главный цикл окна, старт выполняется внутри него."""
+        self.root.after(0, self.start)
         self.root.mainloop()

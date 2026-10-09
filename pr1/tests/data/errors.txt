@@ -1,0 +1,5 @@
+cd one
+foo
+
+cd a b
+ls ok

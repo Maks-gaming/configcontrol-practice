@@ -57,6 +57,34 @@ class Shell:
         except ShellError as error:
             return f"error: {error}", False
 
+    def run_script(self, path, output):
+        """Выполнить стартовый скрипт построчно.
+
+        output(text, ok) вызывается для каждой строки вывода. Пустые
+        строки и комментарии (#) пропускаются, строки с ошибкой
+        сообщаются и тоже пропускаются. Возвращает число ошибок.
+        """
+        try:
+            with open(path, encoding="utf-8") as file:
+                lines = file.read().splitlines()
+        except OSError as error:
+            output(f"error: cannot read script {path}: {error}", False)
+            return 1
+        errors = 0
+        for number, line in enumerate(lines, start=1):
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            output(self.prompt() + line, True)
+            text, ok = self.run_line(line)
+            if not ok:
+                errors += 1
+                text = f"{path}:{number}: {text}"
+            if text:
+                output(text, ok)
+            if not self.running:
+                break
+        return errors
+
     def cmd_ls(self, args):
         """Заглушка ls: проверить опции и вывести имя и аргументы."""
         for arg in args:

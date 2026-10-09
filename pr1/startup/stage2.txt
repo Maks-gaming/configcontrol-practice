@@ -1,0 +1,11 @@
+# Стартовый скрипт этапа 2: команды выполняются по порядку,
+# строки с ошибками пропускаются с сообщением.
+ls
+ls -l $HOME
+cd ${HOME}
+cd "/tmp/dir with spaces"
+unknown_command arg
+cd a b
+ls -x
+ls "unclosed
+ls -la /
