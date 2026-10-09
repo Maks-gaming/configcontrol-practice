@@ -13,12 +13,12 @@ class ShellTest(unittest.TestCase):
         self.shell = Shell()
 
     def test_ls_stub(self):
-        """ls выводит свое имя и аргументы."""
+        """Команда ls выводит свое имя и аргументы."""
         self.assertEqual(self.shell.execute("ls -la /tmp"),
                          "ls: args=['-la', '/tmp']")
 
     def test_cd_stub(self):
-        """cd выводит свое имя и аргумент."""
+        """Команда cd выводит свое имя и аргумент."""
         self.assertEqual(self.shell.execute("cd /home"),
                          "cd: args=['/home']")
 
@@ -37,7 +37,7 @@ class ShellTest(unittest.TestCase):
                 self.assertTrue(text.startswith("error:"))
 
     def test_exit(self):
-        """exit останавливает оболочку."""
+        """Команда exit останавливает оболочку."""
         self.shell.execute("exit")
         self.assertFalse(self.shell.running)
 

@@ -4,6 +4,7 @@ import getpass
 import socket
 
 from src.parser import ParseError, parse_line
+from src.vfs import VfsError, empty_vfs, load_vfs, vfs_stats
 
 LS_OPTIONS = "la"
 CD_MAX_ARGS = 1
@@ -24,11 +25,29 @@ class Shell:
     def __init__(self):
         """Создать оболочку с таблицей команд."""
         self.running = True
+        self.vfs = empty_vfs()
+        self.vfs_source = "default (empty)"
         self.commands = {
             "ls": self.cmd_ls,
             "cd": self.cmd_cd,
             "exit": self.cmd_exit,
+            "vfs-info": self.cmd_vfs_info,
         }
+
+    def start(self, vfs_path, script_path, output):
+        """Загрузить VFS и выполнить стартовый скрипт, если они заданы.
+
+        Если VFS не загрузилась, остается пустая VFS по умолчанию.
+        """
+        if vfs_path:
+            try:
+                self.vfs = load_vfs(vfs_path)
+                self.vfs_source = vfs_path
+                output(f"VFS loaded: {vfs_path}", True)
+            except VfsError as error:
+                output(f"error: VFS: {error}", False)
+        if script_path:
+            self.run_script(script_path, output)
 
     def prompt(self):
         """Вернуть приглашение командной строки."""
@@ -104,6 +123,17 @@ class Shell:
             raise ShellError("exit: too many arguments")
         self.running = False
         return ""
+
+    def cmd_vfs_info(self, args):
+        """Служебная команда: источник и размеры загруженной VFS."""
+        if args:
+            raise ShellError("vfs-info: too many arguments")
+        stats = vfs_stats(self.vfs)
+        return "\n".join([
+            f"source: {self.vfs_source}",
+            f"dirs: {stats['dirs']}, files: {stats['files']}",
+            f"size: {stats['bytes']} bytes, depth: {stats['depth']}",
+        ])
 
 
 def check_options(command, arg, allowed):

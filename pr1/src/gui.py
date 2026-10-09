@@ -9,6 +9,7 @@ FONT = ("Monospace", 11)
 BG_COLOR = "black"
 FG_COLOR = "lightgray"
 ERROR_COLOR = "tomato"
+WINDOW_SIZE = "900x720+0+0"
 
 
 class EmulatorWindow:
@@ -20,6 +21,7 @@ class EmulatorWindow:
         self.shell = Shell()
         self.root = tk.Tk()
         self.root.title(f"Эмулятор - [{get_user_host()}]")
+        self.root.geometry(WINDOW_SIZE)
         self.output = tk.Text(
             self.root, font=FONT, bg=BG_COLOR, fg=FG_COLOR,
             state=tk.DISABLED, wrap=tk.WORD,
@@ -58,9 +60,8 @@ class EmulatorWindow:
         """Показать параметры запуска и выполнить стартовый скрипт."""
         for line in config_lines(self.config):
             self.write(line)
-        if self.config.script:
-            self.shell.run_script(self.config.script, self.write)
-            self.close_if_stopped()
+        self.shell.start(self.config.vfs, self.config.script, self.write)
+        self.close_if_stopped()
 
     def on_enter(self, _event):
         """Обработать нажатие Enter в строке ввода."""

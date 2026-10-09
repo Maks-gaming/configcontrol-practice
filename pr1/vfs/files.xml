@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Несколько файлов в корне, один из них двоичный (base64). -->
+<vfs>
+  <file name="readme.txt">Несколько файлов в корне</file>
+  <file name="notes.txt">купить молоко
+сдать практику</file>
+  <file name="empty.txt"></file>
+  <file name="data.bin" encoding="base64">
+    AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=
+  </file>
+</vfs>

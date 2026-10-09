@@ -6,6 +6,7 @@ import argparse
 def parse_args(argv=None):
     """Разобрать аргументы командной строки и вернуть Namespace."""
     parser = argparse.ArgumentParser(
+        prog="run.sh",
         description="Эмулятор оболочки UNIX с GUI.",
     )
     parser.add_argument(

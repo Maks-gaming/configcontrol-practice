@@ -1,0 +1,19 @@
+# Стартовый скрипт этапа 3: все команды этапов 1-3 и ошибки.
+# Информация о загруженной VFS
+vfs-info
+vfs-info extra
+# Заглушки ls и cd с переменными окружения
+ls
+ls -la $HOME
+ls -l ${HOME}/docs "file with spaces.txt"
+cd /home/student/docs
+cd $HOME
+cd
+# Ошибки: неизвестная команда и неверные аргументы
+whoami
+cd /etc /tmp
+ls -q
+exit now
+cd "unclosed
+# Последняя строка выполняется несмотря на ошибки выше
+ls /bin
