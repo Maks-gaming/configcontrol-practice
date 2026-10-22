@@ -63,3 +63,14 @@ def walk(graph, root):
         elif color[dep] == GRAY:
             back_edges.append((name, dep))
     return order, back_edges
+
+
+def load_order(graph, root):
+    """Вернуть порядок загрузки: зависимости раньше зависящих.
+
+    Это топологическая сортировка через postorder обхода DFS.
+    Если в графе есть цикл, обратное ребро пропускается и порядок
+    внутри цикла условный, о чем сообщает второй элемент ответа.
+    """
+    order, back_edges = walk(graph, root)
+    return order, back_edges

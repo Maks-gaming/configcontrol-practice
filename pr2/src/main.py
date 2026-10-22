@@ -4,10 +4,10 @@ import argparse
 import sys
 
 from src.config import ConfigError, config_lines, load_config
-from src.graph import all_nodes, build_graph, walk
+from src.graph import all_nodes, build_graph, load_order, walk
 from src.repo import CratesRepo, RepoError, TestRepo
 
-SHOW = ("params", "deps", "graph")
+SHOW = ("params", "deps", "graph", "order")
 
 
 def parse_args(argv=None):
@@ -21,7 +21,8 @@ def parse_args(argv=None):
         "--show", choices=SHOW, default="graph",
         help="что вывести: params - параметры (этап 1), "
              "deps - прямые зависимости (этап 2), "
-             "graph - граф зависимостей (этап 3)")
+             "graph - граф зависимостей (этап 3), "
+             "order - порядок загрузки (этап 4)")
     return parser.parse_args(argv)
 
 
@@ -61,6 +62,20 @@ def show_graph(config):
         print(f"цикл: {name} -> {dep}")
 
 
+def show_order(config):
+    """Напечатать порядок загрузки зависимостей."""
+    repo = make_repo(config)
+    root = config["package"]
+    graph = build_graph(repo.get_deps, root, config["max_depth"])
+    order, cycles = load_order(graph, root)
+    print(f"порядок загрузки {root} ({len(order)} пакетов):")
+    for number, name in enumerate(order, 1):
+        print(f"{number:3}. {name}")
+    for name, dep in cycles:
+        print(f"цикл {name} -> {dep}: ребро пропущено, порядок "
+              f"внутри цикла условный")
+
+
 def main(argv=None):
     """Загрузить конфигурацию и выполнить выбранное действие."""
     args = parse_args(argv)
@@ -70,6 +85,8 @@ def main(argv=None):
             print("\n".join(config_lines(config)))
         elif args.show == "graph":
             show_graph(config)
+        elif args.show == "order":
+            show_order(config)
         elif args.show == "deps":
             show_deps(config)
     except ConfigError as err:
