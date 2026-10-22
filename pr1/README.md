@@ -9,21 +9,23 @@
 на tkinter. Пользователь вводит команды в строку ввода внизу окна,
 команды и их вывод появляются в поле выше, как в терминале.
 
-Готовы **этапы 1-3** из 5:
+Сделаны **все 5 этапов**:
 
 1. **REPL** - окно с заголовком `Эмулятор - [username@hostname]`
    (данные берутся из реальной ОС), парсер с раскрытием переменных
-   окружения, заглушки `ls` и `cd`, команда `exit`, сообщения
-   об ошибках.
+   окружения, заглушки `ls` и `cd` (на этапе 4 заменены настоящими),
+   команда `exit`, сообщения об ошибках.
 2. **Конфигурация** - параметры командной строки (путь к VFS и путь
    к стартовому скрипту), отладочный вывод параметров при запуске,
    выполнение стартового скрипта.
 3. **VFS** - виртуальная файловая система загружается из XML-файла
    в память, двоичные данные хранятся в base64, ошибки загрузки
    сообщаются пользователю.
-
-Логика `ls` и `cd` и новые команды `whoami`, `find`, `rm` относятся
-к этапам 4-5 и пока не сделаны.
+4. **Основные команды** - настоящие `ls` и `cd` по VFS (абсолютные
+   и относительные пути, `.`, `..`, `~`), новые команды `whoami`
+   и `find`.
+5. **Дополнительные команды** - `rm` (файлы, `rm -r` для каталогов),
+   изменения только в памяти, XML-файл VFS не меняется.
 
 ## Требования
 
@@ -32,7 +34,12 @@
 
 ## Запуск
 
+Проект лежит в папке `pr1/` общего репозитория практик, все команды
+ниже выполняются из нее:
+
 ```sh
+git clone https://github.com/Maks-gaming/configcontrol-practice.git
+cd configcontrol-practice/pr1
 ./run.sh [-h] [--vfs PATH] [--script PATH]
 ```
 
@@ -43,8 +50,27 @@
 | `-h`, `--help`  | справка по параметрам                              |
 
 `run.sh` можно запускать из любой папки, относительные пути
-считаются от текущей папки. Без `run.sh` то же самое делает
-`python3 -m src.main` из корня репозитория.
+считаются от текущей папки. Интерпретатор выбирается сам:
+`python3`, если он реально запускается, иначе `python`, иначе
+`py -3`, поэтому `run.sh` и `scripts/*.sh` работают и в Git Bash
+на Windows. Без `run.sh` то же самое делает `python3 -m src.main`
+из папки `pr1/`.
+
+### Запуск на Windows
+
+Нужен Python 3 с python.org (tkinter входит в установщик).
+В `cmd` или PowerShell из папки `pr1`:
+
+```bat
+run.bat --vfs vfs\deep.xml --script startup\stage4.txt
+scripts\vfs_stage4.bat
+python -m unittest discover tests
+```
+
+- `run.bat` запускает `python`, а если его нет, то `py -3`;
+- у каждого `scripts\*.sh` есть `.bat`-версия с тем же именем;
+- в Git Bash можно запускать и `./run.sh`, и `scripts/*.sh`;
+- пути к файлам можно писать и через `\`, и через `/`.
 
 При запуске все параметры печатаются в консоль и в окно:
 
@@ -56,27 +82,110 @@
 
 ## Команды эмулятора
 
-| Команда                  | Что делает                                        |
-|--------------------------|---------------------------------------------------|
-| `ls [-l] [-a] [путь...]` | заглушка: печатает имя и аргументы               |
-| `cd [путь]`              | заглушка: печатает имя и аргумент                 |
-| `vfs-info`               | служебная: источник и размеры VFS                 |
-| `exit`                   | закрывает эмулятор                                |
+| Команда                       | Что делает                                   |
+|-------------------------------|----------------------------------------------|
+| `ls [-l] [-a] [путь...]`      | содержимое каталогов или имя файла           |
+| `cd [путь]`                   | сменить текущий каталог, без пути - домой    |
+| `whoami`                      | имя пользователя реальной ОС                 |
+| `find [путь] [-name шаблон]`  | рекурсивный поиск файлов и каталогов         |
+| `rm [-r] путь...`             | удалить файлы, с `-r` также каталоги         |
+| `vfs-info`                    | служебная: источник и размеры VFS            |
+| `exit`                        | закрывает эмулятор                           |
 
-Ошибки выводятся красным цветом:
+### Пути и текущий каталог
 
-| Ситуация                   | Сообщение                                   |
-|----------------------------|---------------------------------------------|
-| неизвестная команда        | `error: pwd: command not found`             |
-| лишние аргументы           | `error: cd: too many arguments`             |
-| неизвестная опция `ls`     | `error: ls: invalid option -- 'z'`          |
-| незакрытая кавычка         | `error: syntax error: No closing quotation` |
+- путь от корня (`/etc/motd`) или от текущего каталога
+  (`docs/plan.txt`, `./docs`);
+- `.` - текущий каталог, `..` - родительский (выше корня
+  не поднимается, как в UNIX);
+- `~` и `~/...` - домашний каталог в VFS, он выбирается так:
+  `/home/<пользователь ОС>`, если такой есть, иначе первый
+  по алфавиту каталог внутри `/home`, иначе корень `/`; поэтому
+  эмулятор не зависит от имени пользователя в ОС;
+- после загрузки VFS эмулятор переходит в домашний каталог;
+- текущий каталог виден в приглашении: `maksim@laptop:~/docs$`.
+
+### ls
+
+- без аргументов показывает текущий каталог, можно передать
+  несколько путей, тогда у каждого каталога есть заголовок `путь:`;
+- имена выводятся по алфавиту, скрытые (начинаются с `.`) не видны;
+- `-a` показывает скрытые файлы и записи `.` и `..`;
+- `-l` подробный вывод: тип и права, размер в байтах, имя;
+- опции можно склеивать: `-la`;
+- для файла выводится его путь, как в UNIX.
+
+### cd
+
+- `cd путь` переходит в каталог, `cd` без аргумента и `cd ~` -
+  в домашний каталог.
+
+### whoami
+
+Печатает имя пользователя ОС, в которой запущен эмулятор
+(то же, что в заголовке окна).
+
+### find
+
+- `find` без аргументов обходит текущий каталог и печатает `.`,
+  `./docs`, `./docs/plan.txt` и т.д.;
+- `find путь` обходит дерево от указанного пути, пути выводятся
+  с тем же началом (`find /etc` -> `/etc/motd`, `find ~` ->
+  `/home/maksim/...`);
+- `-name шаблон` оставляет только узлы, имя которых подходит
+  под шаблон (модуль `fnmatch`): `*` - любые символы, `?` - один
+  символ, `[abc]` - один из перечисленных. Шаблон лучше брать
+  в кавычки: `find / -name "*.txt"`.
+
+### rm
+
+- `rm файл...` удаляет один или несколько файлов;
+- `rm -r каталог` удаляет каталог со всем содержимым;
+- все изменения только в памяти: после перезапуска VFS снова
+  загружается из XML-файла в исходном виде;
+- если удален текущий каталог, эмулятор переходит в родительский
+  каталог удаленного.
+
+### Ошибки
+
+Ошибки выводятся красным цветом, тексты как в bash и GNU coreutils:
+
+| Ситуация                      | Сообщение                                                    |
+|-------------------------------|--------------------------------------------------------------|
+| неизвестная команда           | `error: pwd: command not found`                              |
+| лишние аргументы              | `error: cd: too many arguments`                              |
+| неизвестная опция             | `error: ls: invalid option -- 'z'`                           |
+| незакрытая кавычка            | `error: syntax error: No closing quotation`                  |
+| `ls` нет пути                 | `error: ls: cannot access '/x': No such file or directory`   |
+| `cd` нет каталога             | `error: cd: /x: No such file or directory`                   |
+| `cd` в файл                   | `error: cd: /etc/motd: Not a directory`                      |
+| `whoami` с аргументом         | `error: whoami: extra operand 'root'`                        |
+| `find` нет пути               | `error: find: '/x': No such file or directory`               |
+| `find` без шаблона            | `error: find: missing argument to '-name'`                   |
+| `find` чужой предикат         | `error: find: unknown predicate '-type'`                     |
+| `rm` без аргументов           | `error: rm: missing operand`                                 |
+| `rm` нет пути                 | `error: rm: cannot remove '/x': No such file or directory`   |
+| `rm` каталог без `-r`         | `error: rm: cannot remove 'docs': Is a directory`            |
+| `rm -r /`                     | `error: rm: it is dangerous to operate recursively on '/'`   |
+| `rm .` или `rm ..`            | `error: rm: refusing to remove '.' or '..' directory: ...`   |
 
 ### Парсер
 
 - переменные окружения реальной ОС раскрываются в обеих формах:
-  `$HOME` и `${HOME}`; неизвестная переменная, как в bash,
+  `$NAME` и `${NAME}`; неизвестная переменная, как в bash,
   становится пустой строкой;
+- на Linux есть `$HOME` и `$USER`, на Windows `$USERPROFILE`
+  и `$USERNAME`, обратная косая черта в значении сохраняется:
+
+```
+maksim@laptop:~$ ls $USERPROFILE
+error: ls: cannot access 'C:\Users\maksim': No such file or directory
+maksim@laptop:~$ cd /home/$USERNAME
+```
+
+- стартовые скрипты пишут `/home/$USER$USERNAME`: на Linux
+  раскроется `$USER`, на Windows `$USERNAME`, вторая переменная
+  станет пустой строкой;
 - строка делится на слова по пробелам, текст в кавычках
   (`"my dir"` или `'my dir'`) остается одним словом.
 
@@ -92,20 +201,26 @@
 - если файла скрипта нет, выводится `error: cannot read script ...`;
 - `exit` в скрипте закрывает эмулятор.
 
-Примеры: `startup/stage2.txt` (этап 2), `startup/stage3.txt`
-(все команды этапов 1-3, работа с VFS и ошибки).
+Примеры:
+
+| Скрипт               | Что проверяет                                       |
+|----------------------|-----------------------------------------------------|
+| `startup/stage2.txt` | этап 2: выполнение команд и пропуск ошибок          |
+| `startup/stage3.txt` | этап 3: команды этапов 1-3, VFS и ошибки            |
+| `startup/stage4.txt` | этап 4: все режимы `ls`, `cd`, `whoami`, `find`     |
+| `startup/stage5.txt` | этап 5: все режимы `rm` и ошибки                    |
 
 ## Виртуальная файловая система (VFS)
 
 VFS описывается XML-файлом. Он читается целиком в память и не
-изменяется. Корневой элемент `<vfs>`, внутри каталоги `<dir>`
+изменяется, `rm` меняет только дерево в памяти. Корневой элемент `<vfs>`, внутри каталоги `<dir>`
 и файлы `<file>`, у каждого обязательный атрибут `name`.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <vfs>
   <dir name="home">
-    <dir name="student">
+    <dir name="maksim">
       <file name="notes.txt">обычный текст</file>
       <file name="data.bin" encoding="base64">AAECAwQFBgc=</file>
     </dir>
@@ -144,7 +259,8 @@ VFS описывается XML-файлом. Он читается целико�
 ## Скрипты для проверки (scripts/)
 
 Скрипты ОС, каждый запускает эмулятор один или несколько раз
-(следующий запуск начинается после закрытия окна):
+(следующий запуск начинается после закрытия окна). Рядом с каждым
+`.sh` лежит `.bat` с тем же именем для Windows:
 
 | Скрипт                | Что проверяет                                    |
 |-----------------------|--------------------------------------------------|
@@ -155,50 +271,83 @@ VFS описывается XML-файлом. Он читается целико�
 | `vfs_files.sh`        | VFS с несколькими файлами + `startup/stage3.txt` |
 | `vfs_deep.sh`         | VFS с 4 уровнями + `startup/stage3.txt`          |
 | `vfs_errors.sh`       | все ошибки загрузки VFS                          |
+| `vfs_stage4.sh`       | VFS с 4 уровнями + `startup/stage4.txt`          |
+| `vfs_stage5.sh`       | VFS с 4 уровнями + `startup/stage5.txt`          |
 
 ## Примеры использования
 
-Интерактивная работа (`./run.sh --vfs vfs/files.xml`):
+Интерактивная работа (`./run.sh --vfs vfs/deep.xml`), в VFS есть
+домашний каталог `/home/maksim`:
 
 ```
-maksim@laptop:~$ ls -l $HOME
-ls: args=['-l', '/home/maksim']
-maksim@laptop:~$ cd ${HOME}/projects
-cd: args=['/home/maksim/projects']
-maksim@laptop:~$ cd "my folder"
-cd: args=['my folder']
-maksim@laptop:~$ cd one two
-error: cd: too many arguments
-maksim@laptop:~$ pwd
-error: pwd: command not found
-maksim@laptop:~$ vfs-info
-source: vfs/files.xml
-dirs: 0, files: 4
-size: 130 bytes, depth: 1
+VFS loaded: vfs/deep.xml
+maksim@laptop:~$ whoami
+maksim
+maksim@laptop:~$ ls -a
+.
+..
+.profile
+docs
+maksim@laptop:~$ cd docs/reports
+maksim@laptop:~/docs/reports$ ls
+stage1.txt
+stage2.txt
+stage3.txt
+maksim@laptop:~/docs/reports$ cd ../../..
+maksim@laptop:/home$ ls -l /etc
+-rw-r--r--      8 hostname
+-rw-r--r--     52 motd
+maksim@laptop:/home$ cd /etc/motd
+error: cd: /etc/motd: Not a directory
+maksim@laptop:/home$ cd
+maksim@laptop:~$ find / -name "*.txt"
+/home/maksim/docs/plan.txt
+/home/maksim/docs/reports/stage1.txt
+/home/maksim/docs/reports/stage2.txt
+/home/maksim/docs/reports/stage3.txt
+maksim@laptop:~$ find -name "[ps]*"
+./docs/plan.txt
+./docs/reports/stage1.txt
+./docs/reports/stage2.txt
+./docs/reports/stage3.txt
+maksim@laptop:~$ find /nope
+error: find: '/nope': No such file or directory
 maksim@laptop:~$ exit
 ```
 
-Стартовый скрипт этапа 3 (`./scripts/vfs_deep.sh`), начало вывода:
+Удаление (`./run.sh --vfs vfs/deep.xml`):
 
 ```
-[debug] параметры запуска:
-[debug]   vfs = vfs/deep.xml
-[debug]   script = startup/stage3.txt
-VFS loaded: vfs/deep.xml
-maksim@laptop:~$ vfs-info
+maksim@laptop:~$ rm docs/plan.txt /etc/motd
+maksim@laptop:~$ ls /etc
+hostname
+maksim@laptop:~$ rm docs/reports
+error: rm: cannot remove 'docs/reports': Is a directory
+maksim@laptop:~$ rm -r docs/reports
+maksim@laptop:~$ ls -a docs
+.
+..
+maksim@laptop:~$ cd /tmp
+maksim@laptop:/tmp$ rm -r /tmp
+maksim@laptop:/$ rm -r /
+error: rm: it is dangerous to operate recursively on '/'
+maksim@laptop:/$ vfs-info
 source: vfs/deep.xml
-dirs: 7, files: 8
-size: 165 bytes, depth: 5
-maksim@laptop:~$ vfs-info extra
-startup/stage3.txt:4: error: vfs-info: too many arguments
-maksim@laptop:~$ ls -la $HOME
-ls: args=['-la', '/home/maksim']
-maksim@laptop:~$ whoami
-startup/stage3.txt:13: error: whoami: command not found
-maksim@laptop:~$ cd /etc /tmp
-startup/stage3.txt:14: error: cd: too many arguments
-maksim@laptop:~$ ls /bin
-ls: args=['/bin']
+dirs: 5, files: 3
+size: 55 bytes, depth: 3
+```
+
+В стартовом скрипте перед ошибкой стоит имя файла и номер строки
+(`./scripts/vfs_stage4.sh`, фрагмент):
+
+```
+maksim@laptop:~/docs$ cd /nope
+startup/stage4.txt:31: error: cd: /nope: No such file or directory
+maksim@laptop:~/docs$ find / -type f
+startup/stage4.txt:39: error: find: unknown predicate '-type'
+maksim@laptop:~/docs$ cd
+maksim@laptop:~$ ls
+docs
 ```
 
 Ошибка загрузки VFS (`./run.sh --vfs vfs/bad_root.xml`):
@@ -212,18 +361,25 @@ error: VFS: корневой элемент должен быть <vfs>
 
 ## Тесты
 
+Из папки `pr1/`:
+
 ```sh
 python3 -m unittest discover tests
 ```
 
 Тесты не открывают окно, поэтому работают и без дисплея:
 
-- `tests/test_parser.py` - разбор строк, кавычки, `$HOME` и `${HOME}`;
-- `tests/test_shell.py` - заглушки, `exit`, ошибки команд;
+- `tests/test_parser.py` - разбор строк, кавычки, `$HOME` и `${HOME}`,
+  пути Windows в переменных;
+- `tests/test_shell.py` - приглашение, выбор домашнего каталога, `exit`, ошибки команд,
+  `ls`, `cd`, `whoami`, `find` (все пути и ошибки);
+- `tests/test_rm.py` - `rm` файлов и каталогов, ошибки, XML-файл
+  после удаления не меняется, скрипт этапа 5;
 - `tests/test_config.py` - параметры командной строки и выполнение
   стартового скрипта (пропуск ошибочных строк, `exit`, нет файла);
 - `tests/test_vfs.py` - загрузка всех тестовых VFS, base64,
-  неизменность исходного файла, ошибки загрузки, скрипт этапа 3.
+  неизменность исходного файла, ошибки загрузки, скрипты
+  этапов 3 и 4.
 
 ## Проверка стиля (PEP8)
 
@@ -240,8 +396,10 @@ python3 -m flake8 --max-complexity 10 src tests
 
 ## Структура проекта
 
+Все пути от папки `pr1/`:
+
 ```
-run.sh            запуск эмулятора
+run.sh, run.bat   запуск эмулятора (Linux/Git Bash, Windows)
 src/main.py       точка входа
 src/config.py     параметры командной строки
 src/gui.py        окно tkinter

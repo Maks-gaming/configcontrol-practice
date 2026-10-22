@@ -1,0 +1,31 @@
+# Стартовый скрипт этапа 5: rm и его ошибки.
+# Запуск: ./run.sh --vfs vfs/deep.xml --script startup/stage5.txt
+# Все изменения только в памяти, vfs/deep.xml не меняется.
+vfs-info
+find ~
+# Удаление файла по относительному и абсолютному пути
+rm docs/plan.txt
+rm /etc/motd
+ls /etc
+# Несколько файлов сразу и путь с ~
+rm ~/docs/reports/stage1.txt ~/docs/reports/stage2.txt
+ls docs/reports
+# Каталог удаляется только с -r
+rm docs/reports
+rm -r docs/reports
+ls -a docs
+# Удаление текущего каталога: переход в родительский
+cd /tmp
+rm -r /tmp
+ls /
+# Ошибки
+rm
+rm /nope
+rm -r /
+rm /
+rm -f /bin/hello
+rm .
+rm -r ..
+# После ошибок скрипт продолжает работу
+find ~
+vfs-info

@@ -28,6 +28,14 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(expand_vars("$HOME ${HOME}/x"),
                          "/home/test /home/test/x")
 
+    @mock.patch.dict(os.environ, {"USERPROFILE": "C:\\Users\\Max"})
+    def test_windows_path(self):
+        """Обратная косая черта в значении переменной сохраняется."""
+        self.assertEqual(parse_line("ls $USERPROFILE"),
+                         ["ls", "C:\\Users\\Max"])
+        self.assertEqual(parse_line('ls "$USERPROFILE"'),
+                         ["ls", "C:\\Users\\Max"])
+
     @mock.patch.dict(os.environ, {}, clear=True)
     def test_unknown_var_is_empty(self):
         """Неизвестная переменная заменяется пустой строкой."""

@@ -53,12 +53,24 @@ class ShellTest(unittest.TestCase):
         self.shell.execute("cd /etc")
         self.assertTrue(self.shell.prompt().endswith(":/etc$ "))
 
-    def test_start_in_home(self):
-        """Без домашнего каталога в VFS оболочка стартует в корне."""
+    def test_home_any_user(self):
+        """Нет /home/<user>: домашним становится первый каталог /home."""
         shell = Shell("/home/nobody")
         shell.vfs = load_vfs(DEEP_VFS)
         shell.go_home()
+        self.assertEqual(shell.cwd, ["home", "maksim"])
+        self.assertTrue(shell.prompt().endswith(":~$ "))
+        shell.execute("cd ~/docs")
+        self.assertTrue(shell.prompt().endswith(":~/docs$ "))
+
+    def test_home_is_root(self):
+        """Нет каталога /home: домашний каталог - корень."""
+        shell = Shell("/home/nobody")
+        shell.vfs = load_vfs(os.path.join(ROOT, "vfs", "files.xml"))
+        shell.go_home()
         self.assertEqual(shell.cwd, [])
+        self.assertTrue(shell.prompt().endswith(":/$ "))
+        self.assertEqual(shell.execute("ls ~"), shell.execute("ls /"))
 
 
 class LsTest(unittest.TestCase):

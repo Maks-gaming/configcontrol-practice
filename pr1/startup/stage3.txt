@@ -2,12 +2,12 @@
 # Информация о загруженной VFS
 vfs-info
 vfs-info extra
-# Заглушки ls и cd с переменными окружения
+# ls и cd с переменными окружения: $USER (Linux) и $USERNAME (Windows)
 ls
-ls -la $HOME
-ls -l ${HOME}/docs "file with spaces.txt"
+ls -la /home/$USER$USERNAME
+ls -l /home/${USER}${USERNAME}/docs "file with spaces.txt"
 cd /home/maksim/docs
-cd $HOME
+cd /home/$USER$USERNAME
 cd
 # Ошибки: неизвестная команда и неверные аргументы
 pwd

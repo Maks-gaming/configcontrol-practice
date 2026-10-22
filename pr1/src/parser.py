@@ -19,7 +19,9 @@ def expand_vars(line):
     def replace(match):
         """Вернуть значение переменной для найденного совпадения."""
         name = match.group(1) or match.group(2)
-        return os.environ.get(name, "")
+        value = os.environ.get(name, "")
+        # Обратная косая черта (пути Windows) не должна пропасть в shlex
+        return value.replace("\\", "\\\\")
 
     return VAR_PATTERN.sub(replace, line)
 

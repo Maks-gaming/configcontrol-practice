@@ -1,8 +1,8 @@
 # Стартовый скрипт этапа 2: команды выполняются по порядку,
 # строки с ошибками пропускаются с сообщением.
 ls
-ls -l $HOME
-cd ${HOME}
+ls -l /home/$USER$USERNAME
+cd /home/${USER}${USERNAME}
 cd "/tmp/dir with spaces"
 unknown_command arg
 cd a b

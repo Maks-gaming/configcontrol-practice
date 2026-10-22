@@ -9,6 +9,7 @@ from src.vfs import (VfsError, empty_vfs, get_node, join_path, load_vfs,
                      split_path, vfs_stats)
 
 LS_OPTIONS = "la"
+RM_OPTIONS = "r"
 CD_MAX_ARGS = 1
 DIR_MODE = "drwxr-xr-x"
 FILE_MODE = "-rw-r--r--"
@@ -35,7 +36,8 @@ class Shell:
     def __init__(self, home=None):
         """Создать оболочку, home - домашний каталог в VFS."""
         self.running = True
-        self.home = split_path([], home or default_home(), [])
+        self.user_home = split_path([], home or default_home(), [])
+        self.home = []
         self.cwd = []
         self.vfs = empty_vfs()
         self.vfs_source = "default (empty)"
@@ -44,6 +46,7 @@ class Shell:
             "cd": self.cmd_cd,
             "whoami": self.cmd_whoami,
             "find": self.cmd_find,
+            "rm": self.cmd_rm,
             "exit": self.cmd_exit,
             "vfs-info": self.cmd_vfs_info,
         }
@@ -65,15 +68,27 @@ class Shell:
             self.run_script(script_path, output)
 
     def go_home(self):
-        """Перейти в домашний каталог, если он есть в VFS, иначе в /."""
-        node = get_node(self.vfs, self.home)
-        self.cwd = list(self.home) if node and node.is_dir else []
+        """Выбрать домашний каталог в VFS и перейти в него.
+
+        Порядок: /home/<пользователь ОС>, первый каталог в /home,
+        иначе корень /. Так эмулятор не зависит от имени в ОС.
+        """
+        self.home = []
+        node = get_node(self.vfs, self.user_home)
+        homes = get_node(self.vfs, ["home"])
+        if node is not None and node.is_dir:
+            self.home = list(self.user_home)
+        elif homes is not None and homes.is_dir:
+            dirs = [name for name in sorted(homes.children)
+                    if homes.children[name].is_dir]
+            self.home = ["home", dirs[0]] if dirs else []
+        self.cwd = list(self.home)
 
     def prompt(self):
         """Вернуть приглашение: user@host и текущий каталог."""
         path = join_path(self.cwd)
         home = join_path(self.home)
-        if self.cwd[:len(self.home)] == self.home:
+        if self.home and self.cwd[:len(self.home)] == self.home:
             path = "~" + path[len(home):]
         return f"{get_user_host()}:{path}$ "
 
@@ -188,6 +203,37 @@ class Shell:
             text for text, name in found
             if pattern is None or fnmatch.fnmatchcase(name, pattern)
         )
+
+    def cmd_rm(self, args):
+        """Удалить файлы, с -r также каталоги.
+
+        Удаление идет только в памяти, XML-файл VFS не меняется.
+        """
+        options, paths = split_options("rm", args, RM_OPTIONS)
+        if not paths:
+            raise ShellError("rm: missing operand")
+        for path in paths:
+            self.remove(path, "r" in options)
+        return ""
+
+    def remove(self, path, recursive):
+        """Удалить один узел VFS по пути с проверками как в UNIX."""
+        parts, node = self.resolve(path)
+        if path.rstrip("/").split("/")[-1] in (".", ".."):
+            raise ShellError("rm: refusing to remove '.' or '..' "
+                             f"directory: skipping '{path}'")
+        if node is None or not path:
+            raise ShellError(f"rm: cannot remove '{path}': "
+                             "No such file or directory")
+        if node.is_dir and not recursive:
+            raise ShellError(f"rm: cannot remove '{path}': Is a directory")
+        if not parts:
+            raise ShellError("rm: it is dangerous to operate "
+                             "recursively on '/'")
+        parent = get_node(self.vfs, parts[:-1])
+        del parent.children[parts[-1]]
+        if self.cwd[:len(parts)] == parts:
+            self.cwd = parts[:-1]
 
     def cmd_exit(self, args):
         """Завершить работу оболочки, аргументы не принимаются."""
