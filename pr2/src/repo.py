@@ -5,6 +5,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from src.config import TEST_NAME
+
 # crates.io требует User-Agent с контактом, иначе отвечает 403.
 USER_AGENT = "cargo-graph/1.0 (study project; klimenko.m.s@edu.mirea.ru)"
 TIMEOUT = 20
@@ -74,3 +76,53 @@ class CratesRepo:
             if dep not in names:
                 names.append(dep)
         return names
+
+
+class TestRepo:
+    """Тестовый репозиторий: граф из текстового файла.
+
+    Каждая строка имеет вид 'A: B C' - пакет A зависит от B и C.
+    Пакеты называются большими латинскими буквами, строки
+    с '#' в начале и пустые строки пропускаются.
+    """
+
+    def __init__(self, path):
+        """Прочитать и проверить файл графа."""
+        self.graph = {}
+        self.versions = {}
+        try:
+            with open(path, encoding="utf-8") as file:
+                lines = file.read().splitlines()
+        except OSError as err:
+            raise RepoError(f"не удалось прочитать {path}: {err}") from None
+        for number, line in enumerate(lines, 1):
+            line = line.strip()
+            if line and not line.startswith("#"):
+                self.add_line(line, f"{path}:{number}")
+
+    def add_line(self, line, where):
+        """Разобрать одну строку файла графа."""
+        if ":" not in line:
+            raise RepoError(f"{where}: нет двоеточия в строке '{line}'")
+        name, deps = line.split(":", 1)
+        names = [name.strip()] + deps.split()
+        for item in names:
+            if not TEST_NAME.fullmatch(item):
+                raise RepoError(f"{where}: недопустимое имя '{item}'")
+        if names[0] in self.graph:
+            raise RepoError(f"{where}: пакет {names[0]} описан дважды")
+        self.graph[names[0]] = names[1:]
+
+    def get_deps(self, name):
+        """Вернуть зависимости пакета; без строки в файле - пусто."""
+        known = set(self.graph)
+        for deps in self.graph.values():
+            known.update(deps)
+        if name not in known:
+            raise RepoError(f"пакет {name} не найден в тестовом графе")
+        return self.graph.get(name, [])
+
+    def dependencies(self, name):
+        """Зависимости с требованием к версии; в тесте версий нет."""
+        self.versions[name] = "test"
+        return [(dep, "*") for dep in self.get_deps(name)]

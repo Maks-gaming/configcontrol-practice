@@ -4,9 +4,10 @@ import argparse
 import sys
 
 from src.config import ConfigError, config_lines, load_config
-from src.repo import CratesRepo, RepoError
+from src.graph import all_nodes, build_graph, walk
+from src.repo import CratesRepo, RepoError, TestRepo
 
-SHOW = ("params", "deps")
+SHOW = ("params", "deps", "graph")
 
 
 def parse_args(argv=None):
@@ -17,21 +18,47 @@ def parse_args(argv=None):
     )
     parser.add_argument("config", help="путь к XML-файлу конфигурации")
     parser.add_argument(
-        "--show", choices=SHOW, default="deps",
+        "--show", choices=SHOW, default="graph",
         help="что вывести: params - параметры (этап 1), "
-             "deps - прямые зависимости (этап 2)")
+             "deps - прямые зависимости (этап 2), "
+             "graph - граф зависимостей (этап 3)")
     return parser.parse_args(argv)
+
+
+def make_repo(config):
+    """Создать репозиторий по режиму из конфигурации."""
+    if config["test_mode"]:
+        return TestRepo(config["repository"])
+    return CratesRepo(config["repository"])
 
 
 def show_deps(config):
     """Напечатать прямые зависимости пакета."""
-    repo = CratesRepo(config["repository"])
+    repo = make_repo(config)
     deps = repo.dependencies(config["package"])
     version = repo.versions[config["package"]]
     print(f"{config['package']} {version}: прямых зависимостей "
           f"{len(deps)}")
     for name, req in deps:
         print(f"  {name} {req}")
+
+
+def show_graph(config):
+    """Построить граф и напечатать список смежности и циклы."""
+    repo = make_repo(config)
+    root = config["package"]
+    graph = build_graph(repo.get_deps, root, config["max_depth"])
+    nodes = all_nodes(graph)
+    print(f"граф {root}, глубина {config['max_depth']}: "
+          f"пакетов {len(nodes)}")
+    for name in nodes:
+        if name in graph:
+            print(f"  {name} -> {' '.join(graph[name]) or '(нет)'}")
+        else:
+            print(f"  {name} (не раскрыт: предел глубины)")
+    cycles = walk(graph, root)[1]
+    for name, dep in cycles:
+        print(f"цикл: {name} -> {dep}")
 
 
 def main(argv=None):
@@ -41,7 +68,9 @@ def main(argv=None):
         config = load_config(args.config)
         if args.show == "params":
             print("\n".join(config_lines(config)))
-        else:
+        elif args.show == "graph":
+            show_graph(config)
+        elif args.show == "deps":
             show_deps(config)
     except ConfigError as err:
         print(f"ошибка конфигурации: {err}", file=sys.stderr)
