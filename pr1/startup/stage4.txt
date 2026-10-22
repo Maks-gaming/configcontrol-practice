@@ -1,0 +1,42 @@
+# Стартовый скрипт этапа 4: ls, cd, whoami, find и их ошибки.
+# Запуск: ./run.sh --vfs vfs/deep.xml --script startup/stage4.txt
+whoami
+# ls: текущий каталог, скрытые файлы, подробный вывод
+ls
+ls -a
+ls -l /etc
+ls -la docs
+ls /etc /bin
+ls docs/plan.txt
+# cd: относительные и абсолютные пути, .., ~ и переход домой
+cd docs/reports
+ls
+cd ..
+cd ../..
+cd /etc
+cd ~/docs
+cd ./reports/../../docs
+cd
+cd /
+cd ..
+# find: весь каталог, поиск по шаблону, путь от ~
+find /etc
+find / -name "*.txt"
+find ~ -name "stage?.txt"
+find /home -name maksim
+cd ~/docs
+find
+find . -name "[ps]*"
+# Ошибки
+cd /nope
+cd /etc/motd
+cd a b
+ls /nope
+ls -z
+whoami root
+find /nope
+find / -name
+find / -type f
+# После ошибок скрипт продолжает работу
+cd
+ls

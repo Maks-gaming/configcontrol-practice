@@ -104,3 +104,40 @@ def vfs_stats(node):
             stats["bytes"] += len(child.data)
             stats["depth"] = max(stats["depth"], 1)
     return stats
+
+
+def split_path(cwd, path, home):
+    """Перевести путь в список имен от корня.
+
+    cwd и home - текущий и домашний каталоги в виде списка имен.
+    Поддерживаются абсолютные и относительные пути, '.', '..', '~'.
+    """
+    if path == "~" or path.startswith("~/"):
+        parts = list(home)
+        path = path[1:]
+    elif path.startswith("/"):
+        parts = []
+    else:
+        parts = list(cwd)
+    for name in path.split("/"):
+        if name == "..":
+            if parts:
+                parts.pop()
+        elif name not in ("", "."):
+            parts.append(name)
+    return parts
+
+
+def get_node(root, parts):
+    """Найти узел по списку имен, вернуть None, если его нет."""
+    node = root
+    for name in parts:
+        if not node.is_dir or name not in node.children:
+            return None
+        node = node.children[name]
+    return node
+
+
+def join_path(parts):
+    """Собрать строку абсолютного пути из списка имен."""
+    return "/" + "/".join(parts)

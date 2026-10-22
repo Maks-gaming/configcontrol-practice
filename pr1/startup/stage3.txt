@@ -6,11 +6,11 @@ vfs-info extra
 ls
 ls -la $HOME
 ls -l ${HOME}/docs "file with spaces.txt"
-cd /home/student/docs
+cd /home/maksim/docs
 cd $HOME
 cd
 # Ошибки: неизвестная команда и неверные аргументы
-whoami
+pwd
 cd /etc /tmp
 ls -q
 exit now

@@ -34,7 +34,7 @@ class LoadVfsTest(unittest.TestCase):
     def test_deep_tree(self):
         """В глубокой VFS не меньше 3 уровней вложенности."""
         root = load_vfs(vfs_path("deep.xml"))
-        reports = (root.children["home"].children["student"]
+        reports = (root.children["home"].children["maksim"]
                    .children["docs"].children["reports"])
         self.assertTrue(reports.is_dir)
         stats = vfs_stats(root)
@@ -72,11 +72,11 @@ class VfsErrorTest(unittest.TestCase):
 class ShellVfsTest(unittest.TestCase):
     """Подключение VFS к оболочке и стартовый скрипт этапа 3."""
 
-    def start(self, vfs_name):
-        """Запустить оболочку с VFS и скриптом этапа 3 без GUI."""
-        shell = Shell()
+    def start(self, vfs_name, script_name="stage3.txt"):
+        """Запустить оболочку с VFS и стартовым скриптом без GUI."""
+        shell = Shell("/home/maksim")
         lines = []
-        script = os.path.join(ROOT, "startup", "stage3.txt")
+        script = os.path.join(ROOT, "startup", script_name)
         shell.start(vfs_path(vfs_name), script,
                     lambda text, ok: lines.append(text))
         return shell, lines
@@ -86,8 +86,16 @@ class ShellVfsTest(unittest.TestCase):
         shell, lines = self.start("deep.xml")
         self.assertEqual(lines[0], "VFS loaded: " + vfs_path("deep.xml"))
         self.assertIn("dirs: 7, files: 8", "\n".join(lines))
-        self.assertEqual(lines[-1], "ls: args=['/bin']")
+        self.assertEqual(lines[-1], "hello")
         self.assertTrue(shell.running)
+
+    def test_stage4_script(self):
+        """Скрипт этапа 4: 9 ошибок, в конце снова домашний каталог."""
+        shell, lines = self.start("deep.xml", "stage4.txt")
+        errors = [line for line in lines if ": error: " in line]
+        self.assertEqual(len(errors), 9)
+        self.assertEqual(lines[-1], "docs")
+        self.assertEqual(shell.cwd, ["home", "maksim"])
 
     def test_bad_vfs_keeps_default(self):
         """При ошибке загрузки остается пустая VFS по умолчанию."""

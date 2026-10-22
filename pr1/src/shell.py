@@ -1,13 +1,18 @@
 """Логика оболочки без GUI: выполнение команд."""
 
+import fnmatch
 import getpass
 import socket
 
 from src.parser import ParseError, parse_line
-from src.vfs import VfsError, empty_vfs, load_vfs, vfs_stats
+from src.vfs import (VfsError, empty_vfs, get_node, join_path, load_vfs,
+                     split_path, vfs_stats)
 
 LS_OPTIONS = "la"
 CD_MAX_ARGS = 1
+DIR_MODE = "drwxr-xr-x"
+FILE_MODE = "-rw-r--r--"
+SIZE_WIDTH = 6
 
 
 class ShellError(Exception):
@@ -19,17 +24,26 @@ def get_user_host():
     return f"{getpass.getuser()}@{socket.gethostname()}"
 
 
+def default_home():
+    """Домашний каталог в VFS: /home/имя_пользователя_ОС."""
+    return "/home/" + getpass.getuser()
+
+
 class Shell:
     """Оболочка: хранит состояние и выполняет команды."""
 
-    def __init__(self):
-        """Создать оболочку с таблицей команд."""
+    def __init__(self, home=None):
+        """Создать оболочку, home - домашний каталог в VFS."""
         self.running = True
+        self.home = split_path([], home or default_home(), [])
+        self.cwd = []
         self.vfs = empty_vfs()
         self.vfs_source = "default (empty)"
         self.commands = {
             "ls": self.cmd_ls,
             "cd": self.cmd_cd,
+            "whoami": self.cmd_whoami,
+            "find": self.cmd_find,
             "exit": self.cmd_exit,
             "vfs-info": self.cmd_vfs_info,
         }
@@ -44,14 +58,24 @@ class Shell:
                 self.vfs = load_vfs(vfs_path)
                 self.vfs_source = vfs_path
                 output(f"VFS loaded: {vfs_path}", True)
+                self.go_home()
             except VfsError as error:
                 output(f"error: VFS: {error}", False)
         if script_path:
             self.run_script(script_path, output)
 
+    def go_home(self):
+        """Перейти в домашний каталог, если он есть в VFS, иначе в /."""
+        node = get_node(self.vfs, self.home)
+        self.cwd = list(self.home) if node and node.is_dir else []
+
     def prompt(self):
-        """Вернуть приглашение командной строки."""
-        return f"{get_user_host()}:~$ "
+        """Вернуть приглашение: user@host и текущий каталог."""
+        path = join_path(self.cwd)
+        home = join_path(self.home)
+        if self.cwd[:len(self.home)] == self.home:
+            path = "~" + path[len(home):]
+        return f"{get_user_host()}:{path}$ "
 
     def execute(self, line):
         """Выполнить строку и вернуть текст вывода.
@@ -104,18 +128,66 @@ class Shell:
                 break
         return errors
 
+    def resolve(self, path):
+        """Вернуть путь списком имен и узел VFS (или None)."""
+        parts = split_path(self.cwd, path, self.home)
+        return parts, get_node(self.vfs, parts)
+
     def cmd_ls(self, args):
-        """Заглушка ls: проверить опции и вывести имя и аргументы."""
-        for arg in args:
-            if arg.startswith("-"):
-                check_options("ls", arg, LS_OPTIONS)
-        return format_stub("ls", args)
+        """Показать содержимое каталогов или имена файлов.
+
+        Опции: -l подробный вывод, -a показать скрытые файлы.
+        """
+        options, paths = split_options("ls", args, LS_OPTIONS)
+        paths = paths or ["."]
+        blocks = []
+        for path in paths:
+            _, node = self.resolve(path)
+            if node is None:
+                raise ShellError(f"ls: cannot access '{path}': "
+                                 "No such file or directory")
+            lines = list_node(node, path, options)
+            if len(paths) > 1 and node.is_dir:
+                lines.insert(0, f"{path}:")
+            blocks.append("\n".join(lines))
+        separator = "\n\n" if len(paths) > 1 else "\n"
+        return separator.join(block for block in blocks if block)
 
     def cmd_cd(self, args):
-        """Заглушка cd: принимает не больше одного аргумента."""
+        """Сменить текущий каталог, без аргумента перейти в домашний."""
         if len(args) > CD_MAX_ARGS:
             raise ShellError("cd: too many arguments")
-        return format_stub("cd", args)
+        path = args[0] if args else "~"
+        parts, node = self.resolve(path)
+        if node is None:
+            raise ShellError(f"cd: {path}: No such file or directory")
+        if not node.is_dir:
+            raise ShellError(f"cd: {path}: Not a directory")
+        self.cwd = parts
+        return ""
+
+    def cmd_whoami(self, args):
+        """Вывести имя пользователя реальной ОС."""
+        if args:
+            raise ShellError(f"whoami: extra operand '{args[0]}'")
+        return getpass.getuser()
+
+    def cmd_find(self, args):
+        """Найти файлы и каталоги: find [путь] [-name шаблон]."""
+        path = "."
+        if args and not args[0].startswith("-"):
+            path, args = args[0], args[1:]
+        pattern = parse_find_args(args)
+        parts, node = self.resolve(path)
+        if node is None:
+            raise ShellError(f"find: '{path}': No such file or directory")
+        if path == "~" or path.startswith("~/"):
+            path = join_path(self.home) + path[1:]
+        found = walk(node, path, parts[-1] if parts else "/")
+        return "\n".join(
+            text for text, name in found
+            if pattern is None or fnmatch.fnmatchcase(name, pattern)
+        )
 
     def cmd_exit(self, args):
         """Завершить работу оболочки, аргументы не принимаются."""
@@ -143,6 +215,60 @@ def check_options(command, arg, allowed):
             raise ShellError(f"{command}: invalid option -- '{letter}'")
 
 
-def format_stub(name, args):
-    """Сформировать вывод заглушки: имя команды и ее аргументы."""
-    return f"{name}: args={args}"
+def split_options(command, args, allowed):
+    """Разделить аргументы на набор букв опций и остальные слова."""
+    options = set()
+    words = []
+    for arg in args:
+        if arg.startswith("-") and arg != "-":
+            check_options(command, arg, allowed)
+            options.update(arg[1:])
+        else:
+            words.append(arg)
+    return options, words
+
+
+def format_entry(name, node, long_format):
+    """Строка вывода ls для одного узла."""
+    if not long_format:
+        return name
+    mode = DIR_MODE if node.is_dir else FILE_MODE
+    size = 0 if node.is_dir else len(node.data)
+    return f"{mode} {size:>{SIZE_WIDTH}} {name}"
+
+
+def list_node(node, path, options):
+    """Строки вывода ls для файла или каталога."""
+    long_format = "l" in options
+    if not node.is_dir:
+        return [format_entry(path, node, long_format)]
+    entries = []
+    if "a" in options:
+        entries = [(".", node), ("..", node)]
+    for name in sorted(node.children):
+        if "a" in options or not name.startswith("."):
+            entries.append((name, node.children[name]))
+    return [format_entry(name, child, long_format)
+            for name, child in entries]
+
+
+def parse_find_args(args):
+    """Разобрать выражение find, вернуть шаблон -name или None."""
+    pattern = None
+    while args:
+        if args[0] != "-name":
+            raise ShellError(f"find: unknown predicate '{args[0]}'")
+        if len(args) == 1:
+            raise ShellError("find: missing argument to '-name'")
+        pattern, args = args[1], args[2:]
+    return pattern
+
+
+def walk(node, text, name):
+    """Обойти дерево, вернуть пары (путь для вывода, имя узла)."""
+    found = [(text, name)]
+    prefix = text if text.endswith("/") else text + "/"
+    for child_name in sorted(node.children):
+        child = node.children[child_name]
+        found.extend(walk(child, prefix + child_name, child_name))
+    return found

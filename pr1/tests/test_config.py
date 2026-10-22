@@ -1,5 +1,6 @@
 """Тесты параметров командной строки и стартового скрипта."""
 
+import getpass
 import os
 import unittest
 
@@ -40,10 +41,10 @@ class ScriptTest(unittest.TestCase):
     def test_errors_are_skipped(self):
         """Ошибочные строки сообщаются, выполнение продолжается."""
         _, lines, errors = self.run_script("errors.txt")
-        self.assertEqual(errors, 2)
+        self.assertEqual(errors, 3)
         self.assertTrue(lines[0].endswith("$ cd one"))
         self.assertIn("command not found", lines[3])
-        self.assertTrue(lines[-1].startswith("ls: args="))
+        self.assertEqual(lines[-1], getpass.getuser())
 
     def test_input_is_echoed(self):
         """Каждая команда показывается с приглашением."""
@@ -54,7 +55,7 @@ class ScriptTest(unittest.TestCase):
         """После exit оставшиеся строки не выполняются."""
         shell, lines, _ = self.run_script("exit.txt")
         self.assertFalse(shell.running)
-        self.assertNotIn("ls: args=['never']", lines)
+        self.assertFalse(any(line.endswith("ls never") for line in lines))
 
     def test_missing_script(self):
         """Несуществующий скрипт дает сообщение об ошибке."""

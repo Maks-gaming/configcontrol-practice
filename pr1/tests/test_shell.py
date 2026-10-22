@@ -1,26 +1,31 @@
 """Тесты выполнения команд оболочки."""
 
+import getpass
+import os
 import unittest
 
 from src.shell import Shell, ShellError
+from src.vfs import load_vfs
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEEP_VFS = os.path.join(ROOT, "vfs", "deep.xml")
+HOME = "/home/maksim"
+
+
+def make_shell():
+    """Оболочка с VFS deep.xml, текущий каталог домашний."""
+    shell = Shell(HOME)
+    shell.vfs = load_vfs(DEEP_VFS)
+    shell.go_home()
+    return shell
 
 
 class ShellTest(unittest.TestCase):
-    """Проверка команд-заглушек, exit и ошибок."""
+    """Проверка общих правил, exit и ошибок."""
 
     def setUp(self):
         """Создать новую оболочку для каждого теста."""
-        self.shell = Shell()
-
-    def test_ls_stub(self):
-        """Команда ls выводит свое имя и аргументы."""
-        self.assertEqual(self.shell.execute("ls -la /tmp"),
-                         "ls: args=['-la', '/tmp']")
-
-    def test_cd_stub(self):
-        """Команда cd выводит свое имя и аргумент."""
-        self.assertEqual(self.shell.execute("cd /home"),
-                         "cd: args=['/home']")
+        self.shell = make_shell()
 
     def test_unknown_command(self):
         """Неизвестная команда дает ошибку."""
@@ -41,9 +46,149 @@ class ShellTest(unittest.TestCase):
         self.shell.execute("exit")
         self.assertFalse(self.shell.running)
 
-    def test_prompt_has_user_and_host(self):
-        """Приглашение содержит username@hostname."""
+    def test_prompt(self):
+        """Приглашение содержит user@host и текущий каталог."""
         self.assertIn("@", self.shell.prompt())
+        self.assertTrue(self.shell.prompt().endswith(":~$ "))
+        self.shell.execute("cd /etc")
+        self.assertTrue(self.shell.prompt().endswith(":/etc$ "))
+
+    def test_start_in_home(self):
+        """Без домашнего каталога в VFS оболочка стартует в корне."""
+        shell = Shell("/home/nobody")
+        shell.vfs = load_vfs(DEEP_VFS)
+        shell.go_home()
+        self.assertEqual(shell.cwd, [])
+
+
+class LsTest(unittest.TestCase):
+    """Команда ls."""
+
+    def setUp(self):
+        """Создать новую оболочку для каждого теста."""
+        self.shell = make_shell()
+
+    def test_current_dir(self):
+        """Без аргументов показан текущий каталог без скрытых."""
+        self.assertEqual(self.shell.execute("ls"), "docs")
+
+    def test_hidden(self):
+        """С -a видны скрытые файлы, . и .."""
+        self.assertEqual(self.shell.execute("ls -a").split(),
+                         [".", "..", ".profile", "docs"])
+
+    def test_long(self):
+        """С -l видны тип, права и размер."""
+        lines = self.shell.execute("ls -l /etc").splitlines()
+        self.assertEqual(lines[0].split(), ["-rw-r--r--", "8", "hostname"])
+        self.assertTrue(self.shell.execute("ls -l /").startswith("d"))
+
+    def test_paths(self):
+        """Относительный, абсолютный путь, .. и ~."""
+        self.assertEqual(self.shell.execute("ls /bin"), "hello")
+        self.assertEqual(self.shell.execute("ls docs/reports/.."),
+                         "plan.txt\nreports")
+        self.assertEqual(self.shell.execute("ls ../.."), "bin\netc\nhome\ntmp")
+        self.assertEqual(self.shell.execute("ls ~"), "docs")
+
+    def test_file_and_many(self):
+        """Файл выводится по имени, у нескольких каталогов заголовки."""
+        self.assertEqual(self.shell.execute("ls /etc/motd"), "/etc/motd")
+        self.assertEqual(self.shell.execute("ls /bin /tmp"),
+                         "/bin:\nhello\n\n/tmp:")
+
+    def test_errors(self):
+        """Нет пути, неверная опция."""
+        with self.assertRaisesRegex(ShellError, "No such file"):
+            self.shell.execute("ls /nope")
+        with self.assertRaisesRegex(ShellError, "invalid option"):
+            self.shell.execute("ls -x")
+
+
+class CdTest(unittest.TestCase):
+    """Команда cd."""
+
+    def setUp(self):
+        """Создать новую оболочку для каждого теста."""
+        self.shell = make_shell()
+
+    def cwd(self):
+        """Текущий каталог строкой."""
+        return "/" + "/".join(self.shell.cwd)
+
+    def test_paths(self):
+        """Переходы по разным видам путей."""
+        cases = [
+            ("cd docs/reports", HOME + "/docs/reports"),
+            ("cd ..", HOME + "/docs"),
+            ("cd ../../..", "/"),
+            ("cd ..", "/"),
+            ("cd /etc", "/etc"),
+            ("cd ~/docs", HOME + "/docs"),
+            ("cd ./reports/../.", HOME + "/docs"),
+            ("cd", HOME),
+        ]
+        for line, expected in cases:
+            with self.subTest(line=line):
+                self.assertEqual(self.shell.execute(line), "")
+                self.assertEqual(self.cwd(), expected)
+
+    def test_errors(self):
+        """Нет каталога, это файл, лишние аргументы."""
+        cases = {
+            "cd /nope": "No such file or directory",
+            "cd /etc/motd": "Not a directory",
+            "cd / /etc": "too many arguments",
+        }
+        for line, message in cases.items():
+            with self.subTest(line=line):
+                with self.assertRaisesRegex(ShellError, message):
+                    self.shell.execute(line)
+                self.assertEqual(self.cwd(), HOME)
+
+
+class WhoamiFindTest(unittest.TestCase):
+    """Команды whoami и find."""
+
+    def setUp(self):
+        """Создать новую оболочку для каждого теста."""
+        self.shell = make_shell()
+
+    def test_whoami(self):
+        """whoami выводит имя пользователя ОС."""
+        self.assertEqual(self.shell.execute("whoami"), getpass.getuser())
+        with self.assertRaisesRegex(ShellError, "extra operand"):
+            self.shell.execute("whoami root")
+
+    def test_find_all(self):
+        """Без шаблона выводится все дерево от пути."""
+        self.assertEqual(self.shell.execute("find /etc").splitlines(),
+                         ["/etc", "/etc/hostname", "/etc/motd"])
+        self.shell.execute("cd docs/reports")
+        self.assertEqual(self.shell.execute("find").splitlines()[:2],
+                         [".", "./stage1.txt"])
+
+    def test_find_name(self):
+        """Поиск по шаблону -name, путь с ~."""
+        self.assertEqual(
+            self.shell.execute('find / -name "h*"').splitlines(),
+            ["/bin/hello", "/etc/hostname", "/home"])
+        found = self.shell.execute("find ~ -name stage?.txt").splitlines()
+        self.assertEqual(len(found), 3)
+        self.assertTrue(found[0].startswith(HOME + "/docs/reports/"))
+        self.assertEqual(self.shell.execute("find / -name nothing"), "")
+
+    def test_find_errors(self):
+        """Нет пути, нет шаблона, неизвестный предикат."""
+        cases = {
+            "find /nope": "No such file",
+            "find / -name": "missing argument",
+            "find / -type f": "unknown predicate",
+        }
+        for line, message in cases.items():
+            with self.subTest(line=line):
+                with self.assertRaisesRegex(ShellError, message):
+                    self.shell.execute(line)
 
 
 if __name__ == "__main__":
