@@ -8,9 +8,9 @@ for g in simple cycle diamond deep; do
 done
 for g in bad_line bad_name; do
     echo "== graphs/$g.txt"
-    sed "s/test_simple/x/; s#graphs/simple.txt#graphs/$g.txt#" \
-        configs/test_simple.xml > /tmp/cargo_graph_bad.xml
-    ./run.sh /tmp/cargo_graph_bad.xml --show graph
+    sed "s#graphs/simple.txt#graphs/$g.txt#" \
+        configs/test_simple.xml > configs/tmp_bad.xml
+    ./run.sh configs/tmp_bad.xml --show graph
 done
-rm -f /tmp/cargo_graph_bad.xml
+rm -f configs/tmp_bad.xml
 exit 0

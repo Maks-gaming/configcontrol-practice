@@ -95,11 +95,16 @@ def load_config(path):
     """Загрузить конфигурацию, вернуть словарь проверенных значений."""
     raw = read_xml(path)
     test_mode = parse_bool("test_mode", raw["test_mode"])
+    repository = raw["repository"]
+    if test_mode and repository:
+        # Путь к тестовому файлу считается от папки конфига.
+        folder = os.path.dirname(os.path.abspath(path))
+        repository = os.path.normpath(os.path.join(folder, repository))
     check_package(raw["package"], test_mode)
-    check_repository(raw["repository"], test_mode)
+    check_repository(repository, test_mode)
     return {
         "package": raw["package"],
-        "repository": raw["repository"],
+        "repository": repository,
         "test_mode": test_mode,
         "ascii_tree": parse_bool("ascii_tree", raw["ascii_tree"]),
         "max_depth": parse_depth(raw["max_depth"]),

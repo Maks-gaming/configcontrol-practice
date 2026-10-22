@@ -2,7 +2,7 @@
 <!-- Тестовый репозиторий graphs/cycle.txt -->
 <config>
     <package>A</package>
-    <repository>graphs/cycle.txt</repository>
+    <repository>../graphs/cycle.txt</repository>
     <test_mode>true</test_mode>
     <ascii_tree>true</ascii_tree>
     <max_depth>5</max_depth>

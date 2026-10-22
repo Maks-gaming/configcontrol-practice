@@ -1,13 +1,17 @@
 """Точка входа: визуализация графа зависимостей пакетов Cargo."""
 
 import argparse
+import os
 import sys
+import webbrowser
+from pathlib import Path
 
 from src.config import ConfigError, config_lines, load_config
 from src.graph import all_nodes, build_graph, load_order, walk
+from src.render import ascii_tree, render, to_dot
 from src.repo import CratesRepo, RepoError, TestRepo
 
-SHOW = ("params", "deps", "graph", "order")
+SHOW = ("params", "deps", "graph", "order", "dot")
 
 
 def parse_args(argv=None):
@@ -18,11 +22,18 @@ def parse_args(argv=None):
     )
     parser.add_argument("config", help="путь к XML-файлу конфигурации")
     parser.add_argument(
-        "--show", choices=SHOW, default="graph",
+        "--show", choices=SHOW, default="dot",
         help="что вывести: params - параметры (этап 1), "
              "deps - прямые зависимости (этап 2), "
              "graph - граф зависимостей (этап 3), "
-             "order - порядок загрузки (этап 4)")
+             "order - порядок загрузки (этап 4), "
+             "dot - Graphviz и картинка (этап 5, по умолчанию)")
+    parser.add_argument(
+        "--image", metavar="PATH",
+        help="куда сохранить картинку графа, по умолчанию "
+             "out/<пакет>.png")
+    parser.add_argument("--view", action="store_true",
+                        help="открыть картинку после сохранения")
     return parser.parse_args(argv)
 
 
@@ -76,6 +87,30 @@ def show_order(config):
               f"внутри цикла условный")
 
 
+def show_dot(config, image, view):
+    """Напечатать DOT, сохранить картинку и ASCII-дерево."""
+    repo = make_repo(config)
+    root = config["package"]
+    graph = build_graph(repo.get_deps, root, config["max_depth"])
+    dot_text = to_dot(graph, root)
+    print(dot_text, end="")
+    image = image or os.path.join("out", root + ".png")
+    folder = os.path.dirname(image)
+    if folder:
+        os.makedirs(folder, exist_ok=True)
+    error = render(dot_text, image)
+    if error:
+        print(f"картинка не создана: {error}. Текст DOT выше можно "
+              f"вставить в https://dreampuf.github.io/GraphvizOnline",
+              file=sys.stderr)
+    else:
+        print(f"картинка сохранена: {image}", file=sys.stderr)
+        if view:
+            webbrowser.open(Path(image).resolve().as_uri())
+    if config["ascii_tree"]:
+        print("\n".join(ascii_tree(graph, root)))
+
+
 def main(argv=None):
     """Загрузить конфигурацию и выполнить выбранное действие."""
     args = parse_args(argv)
@@ -85,6 +120,8 @@ def main(argv=None):
             print("\n".join(config_lines(config)))
         elif args.show == "graph":
             show_graph(config)
+        elif args.show == "dot":
+            show_dot(config, args.image, args.view)
         elif args.show == "order":
             show_order(config)
         elif args.show == "deps":

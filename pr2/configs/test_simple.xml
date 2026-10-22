@@ -2,7 +2,7 @@
 <!-- Тестовый репозиторий graphs/simple.txt -->
 <config>
     <package>A</package>
-    <repository>graphs/simple.txt</repository>
+    <repository>../graphs/simple.txt</repository>
     <test_mode>true</test_mode>
     <ascii_tree>true</ascii_tree>
     <max_depth>5</max_depth>
