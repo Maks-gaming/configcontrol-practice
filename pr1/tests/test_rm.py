@@ -13,8 +13,13 @@ DEEP_VFS = os.path.join(ROOT, "vfs", "deep.xml")
 class RmTest(unittest.TestCase):
     """Удаление файлов и каталогов в памяти."""
 
-    def setUp(self):
-        """Оболочка с VFS deep.xml в домашнем каталоге."""
+    def __init__(self, method_name="runTest"):
+        """Оболочка с VFS deep.xml в домашнем каталоге.
+
+        unittest создает отдельный объект класса на каждый тест,
+        поэтому удаления одного теста не видны в другом.
+        """
+        super().__init__(method_name)
         self.shell = Shell("/home/maksim")
         self.shell.vfs = load_vfs(DEEP_VFS)
         self.shell.go_home()

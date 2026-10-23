@@ -1,17 +1,20 @@
-"""Загрузка и проверка конфигурации из XML-файла."""
+"""Загрузка и проверка конфигурации из XML-файла.
+
+KEYS задает порядок параметров, в нем же они печатаются.
+CRATE_NAME - имя крейта на crates.io: латиница, цифры, '-' и '_',
+до 64 символов. TEST_NAME - имя пакета в тестовом репозитории:
+большие латинские буквы.
+"""
 
 import os
 import re
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as etree
 
-# Порядок параметров важен: в нем же они печатаются.
 KEYS = ("package", "repository", "test_mode", "ascii_tree", "max_depth")
 TRUE_WORDS = ("true", "yes", "1")
 FALSE_WORDS = ("false", "no", "0")
 MIN_DEPTH = 1
-# Имя крейта на crates.io: латиница, цифры, '-' и '_', до 64 символов.
 CRATE_NAME = re.compile(r"[A-Za-z][A-Za-z0-9_-]{0,63}")
-# Имя пакета в тестовом репозитории: большие латинские буквы.
 TEST_NAME = re.compile(r"[A-Z]+")
 
 
@@ -24,8 +27,8 @@ def read_xml(path):
     if not os.path.isfile(path):
         raise ConfigError(f"файл конфигурации не найден: {path}")
     try:
-        root = ET.parse(path).getroot()
-    except ET.ParseError as err:
+        root = etree.parse(path).getroot()
+    except etree.ParseError as err:
         raise ConfigError(f"неверный формат XML: {err}") from err
     if root.tag != "config":
         raise ConfigError(f"корневой элемент должен быть <config>, "
@@ -92,12 +95,14 @@ def check_repository(path, test_mode):
 
 
 def load_config(path):
-    """Загрузить конфигурацию, вернуть словарь проверенных значений."""
+    """Загрузить конфигурацию, вернуть словарь проверенных значений.
+
+    Путь к тестовому файлу считается от папки конфига.
+    """
     raw = read_xml(path)
     test_mode = parse_bool("test_mode", raw["test_mode"])
     repository = raw["repository"]
     if test_mode and repository:
-        # Путь к тестовому файлу считается от папки конфига.
         folder = os.path.dirname(os.path.abspath(path))
         repository = os.path.normpath(os.path.join(folder, repository))
     check_package(raw["package"], test_mode)

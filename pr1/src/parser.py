@@ -15,12 +15,13 @@ def expand_vars(line):
     """Заменить $NAME и ${NAME} значениями из окружения ОС.
 
     Как в bash, неизвестная переменная заменяется пустой строкой.
+    Обратная косая черта в значении (пути Windows) удваивается,
+    чтобы shlex не съел ее при разборе.
     """
     def replace(match):
         """Вернуть значение переменной для найденного совпадения."""
         name = match.group(1) or match.group(2)
         value = os.environ.get(name, "")
-        # Обратная косая черта (пути Windows) не должна пропасть в shlex
         return value.replace("\\", "\\\\")
 
     return VAR_PATTERN.sub(replace, line)

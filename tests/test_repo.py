@@ -1,4 +1,7 @@
-"""Тесты получения зависимостей с crates.io через HTTP-моки (этап 2)."""
+"""Тесты получения зависимостей с crates.io через HTTP-моки (этап 2).
+
+RESPONSES - ответы API в сокращенном виде: url -> JSON.
+"""
 
 import io
 import json
@@ -9,7 +12,6 @@ from unittest import mock
 from src.repo import CratesRepo, RepoError
 
 BASE = "https://crates.io/api/v1"
-# Ответы API в сокращенном виде: url -> JSON.
 RESPONSES = {
     BASE + "/crates/demo": {"crate": {"max_stable_version": "1.2.0",
                                       "newest_version": "2.0.0-beta"}},

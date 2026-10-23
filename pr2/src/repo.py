@@ -1,4 +1,7 @@
-"""Получение прямых зависимостей пакетов из репозитория."""
+"""Получение прямых зависимостей пакетов из репозитория.
+
+crates.io требует User-Agent с контактом, иначе отвечает 403.
+"""
 
 import json
 import urllib.error
@@ -7,7 +10,6 @@ import urllib.request
 
 from src.config import TEST_NAME
 
-# crates.io требует User-Agent с контактом, иначе отвечает 403.
 USER_AGENT = "cargo-graph/1.0 (study project; klimenko.m.s@edu.mirea.ru)"
 TIMEOUT = 20
 HTTP_NOT_FOUND = 404

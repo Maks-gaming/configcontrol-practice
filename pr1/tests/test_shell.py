@@ -23,8 +23,13 @@ def make_shell():
 class ShellTest(unittest.TestCase):
     """Проверка общих правил, exit и ошибок."""
 
-    def setUp(self):
-        """Создать новую оболочку для каждого теста."""
+    def __init__(self, method_name="runTest"):
+        """Создать новую оболочку для каждого теста.
+
+        unittest создает отдельный объект класса на каждый тест,
+        поэтому состояние между тестами не переносится.
+        """
+        super().__init__(method_name)
         self.shell = make_shell()
 
     def test_unknown_command(self):
@@ -76,8 +81,13 @@ class ShellTest(unittest.TestCase):
 class LsTest(unittest.TestCase):
     """Команда ls."""
 
-    def setUp(self):
-        """Создать новую оболочку для каждого теста."""
+    def __init__(self, method_name="runTest"):
+        """Создать новую оболочку для каждого теста.
+
+        unittest создает отдельный объект класса на каждый тест,
+        поэтому состояние между тестами не переносится.
+        """
+        super().__init__(method_name)
         self.shell = make_shell()
 
     def test_current_dir(self):
@@ -120,8 +130,13 @@ class LsTest(unittest.TestCase):
 class CdTest(unittest.TestCase):
     """Команда cd."""
 
-    def setUp(self):
-        """Создать новую оболочку для каждого теста."""
+    def __init__(self, method_name="runTest"):
+        """Создать новую оболочку для каждого теста.
+
+        unittest создает отдельный объект класса на каждый тест,
+        поэтому состояние между тестами не переносится.
+        """
+        super().__init__(method_name)
         self.shell = make_shell()
 
     def cwd(self):
@@ -162,8 +177,13 @@ class CdTest(unittest.TestCase):
 class WhoamiFindTest(unittest.TestCase):
     """Команды whoami и find."""
 
-    def setUp(self):
-        """Создать новую оболочку для каждого теста."""
+    def __init__(self, method_name="runTest"):
+        """Создать новую оболочку для каждого теста.
+
+        unittest создает отдельный объект класса на каждый тест,
+        поэтому состояние между тестами не переносится.
+        """
+        super().__init__(method_name)
         self.shell = make_shell()
 
     def test_whoami(self):
