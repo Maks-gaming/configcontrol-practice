@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Реальный крейт rand с crates.io -->
+<config>
+    <package>rand</package>
+    <repository>https://crates.io/api/v1</repository>
+    <test_mode>false</test_mode>
+    <ascii_tree>true</ascii_tree>
+    <max_depth>10</max_depth>
+</config>
