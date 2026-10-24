@@ -1,4 +1,0 @@
-<config>
-    <package>serde_json</package>
-    <repository>https://crates.io/api/v1</repository>
-</config>

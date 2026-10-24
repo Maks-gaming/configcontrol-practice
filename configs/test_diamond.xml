@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- Тестовый репозиторий graphs/diamond.txt -->
-<config>
-    <package>A</package>
-    <repository>../graphs/diamond.txt</repository>
-    <test_mode>true</test_mode>
-    <ascii_tree>true</ascii_tree>
-    <max_depth>5</max_depth>
-</config>
