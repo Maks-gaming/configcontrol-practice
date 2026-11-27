@@ -10,7 +10,7 @@ if "%~1"=="run" (
 )
 where py >nul 2>nul
 if %errorlevel%==0 (
-    py -3 -m %MODULE% %*
+    py -3 -m %MODULE% %1 %2 %3 %4
 ) else (
-    python -m %MODULE% %*
+    python -m %MODULE% %1 %2 %3 %4
 )
