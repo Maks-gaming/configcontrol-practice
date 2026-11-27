@@ -1,0 +1,17 @@
+[
+  {"op": "load", "arg": 11},
+  {"op": "store", "arg": 20},
+  {"op": "load", "arg": 22},
+  {"op": "store", "arg": 21},
+  {"op": "load", "arg": 33},
+  {"op": "store", "arg": 22},
+  {"op": "load", "arg": 20},
+  {"op": "read"},
+  {"op": "store", "arg": 30},
+  {"op": "load", "arg": 21},
+  {"op": "read"},
+  {"op": "store", "arg": 31},
+  {"op": "load", "arg": 22},
+  {"op": "read"},
+  {"op": "store", "arg": 32}
+]
