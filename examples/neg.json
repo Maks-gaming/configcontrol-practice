@@ -1,0 +1,11 @@
+[
+  {"op": "load", "arg": 17},
+  {"op": "neg"},
+  {"op": "store", "arg": 40},
+  {"op": "load", "arg": 0},
+  {"op": "neg"},
+  {"op": "store", "arg": 41},
+  {"op": "load", "arg": 9},
+  {"op": "neg"},
+  {"op": "store", "arg": 42}
+]

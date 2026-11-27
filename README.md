@@ -95,6 +95,24 @@ py -3 -m src.interpreter out\copy.bin out\copy-dump.json 20 32
 в `out/copy-dump.json`. Демонстрация повторяется командой
 `sh scripts/stage3.sh`.
 
+## АЛУ: унарный минус
+
+Команда `neg` меняет знак аккумулятора. Пример `examples/neg.json` вычисляет
+`-17`, `0` и `-9`, сохраняя результаты по адресам 40-42:
+
+```sh
+./run.sh examples/neg.json out/neg.bin
+python3 -m src.interpreter out/neg.bin out/neg-dump.json 40 42
+```
+
+Результат:
+
+```json
+{"40": -17, "41": 0, "42": -9}
+```
+
+Демонстрация этапа: `sh scripts/stage4.sh`.
+
 ## Тесты
 
 ```sh
@@ -102,6 +120,7 @@ python3 -m unittest discover -s tests -v
 sh scripts/stage1.sh
 sh scripts/stage2.sh
 sh scripts/stage3.sh
+sh scripts/stage4.sh
 ```
 
 Проверяются значения полей всех четырех команд, точные байтовые

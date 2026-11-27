@@ -65,8 +65,10 @@ class Machine:
             self.read_memory()
         elif name == "store":
             self.memory[command["b"]] = self.accumulator
+        elif name == "neg":
+            self.accumulator = -self.accumulator
         else:
-            raise MachineError(f"операция {name} пока не реализована")
+            raise MachineError(f"неизвестная операция {name}")
 
     def run(self):
         """Выполнять команды до конца памяти программы."""

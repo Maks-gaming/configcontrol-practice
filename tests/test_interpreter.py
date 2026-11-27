@@ -72,6 +72,13 @@ class MachineTest(unittest.TestCase):
         self.assertEqual([machine.memory[a] for a in range(30, 33)],
                          [11, 22, 33])
 
+    def test_neg_example(self):
+        """Унарный минус вычисляется и сохраняется в памяти."""
+        machine = Machine(example("neg.json"))
+        machine.run()
+        self.assertEqual([machine.memory[a] for a in range(40, 43)],
+                         [-17, 0, -9])
+
     def test_uninitialized_read(self):
         """Чтение неизвестного адреса не подставляет мусор."""
         program = parse_program([{"op": "read"}])
