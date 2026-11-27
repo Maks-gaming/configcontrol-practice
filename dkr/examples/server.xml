@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <constant name="host" type="string">127.0.0.1</constant>
+  <constant name="basePort" type="number">8080</constant>
+  <constant name="tlsPort" type="number">8523</constant>
+  <constant name="workerCount" type="number">4</constant>
+  <constant name="backlog" type="number">29</constant>
+  <value type="array">
+    <item type="string">127.0.0.1</item>
+    <item type="number">8081</item>
+    <item type="number">8523</item>
+    <item type="array">
+      <item type="number">29</item>
+      <item type="number">-1</item>
+      <item type="number">15</item>
+    </item>
+  </value>
+</config>

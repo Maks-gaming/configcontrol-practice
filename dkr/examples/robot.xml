@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <constant name="leftMotor" type="number">120</constant>
+  <constant name="rightMotor" type="number">100</constant>
+  <constant name="difference" type="number">20</constant>
+  <constant name="correction" type="number">20</constant>
+  <constant name="route" type="array">
+    <item type="string">start</item>
+    <item type="string">north</item>
+    <item type="string">dock</item>
+  </constant>
+  <value type="array">
+    <item type="array">
+      <item type="string">start</item>
+      <item type="string">north</item>
+      <item type="string">dock</item>
+    </item>
+    <item type="array">
+      <item type="number">20</item>
+      <item type="number">1</item>
+    </item>
+    <item type="array">
+      <item type="array">
+        <item type="number">1</item>
+        <item type="number">2</item>
+      </item>
+      <item type="array">
+        <item type="number">3</item>
+        <item type="number">4</item>
+      </item>
+    </item>
+  </value>
+</config>
