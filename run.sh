@@ -14,4 +14,8 @@ else
 fi
 export PYTHONUTF8=1
 export PYTHONPATH="$DIR"
+if [ "${1:-}" = "run" ]; then
+    shift
+    exec $PY -m src.interpreter "$@"
+fi
 exec $PY -m src.assembler "$@"

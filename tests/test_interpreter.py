@@ -96,6 +96,26 @@ class MachineTest(unittest.TestCase):
         self.assertIsNot(machine.program, machine.memory)
 
 
+class VectorTaskTest(unittest.TestCase):
+    """Три программы тестовой задачи из этапа 5."""
+
+    def test_vectors(self):
+        """Новый вектор содержит противоположные числа, источник сохранен."""
+        cases = {
+            "vector1": [1, -2, 3, -4, 5, -6, 0],
+            "vector2": [10, 20, 30, 40, 50, 60, 70],
+            "vector3": [-7, 14, -21, 28, -35, 42, -49],
+        }
+        for name, source in cases.items():
+            with self.subTest(name=name):
+                machine = Machine(example(name + ".json"))
+                machine.run()
+                original = [machine.memory[a] for a in range(20, 27)]
+                result = [machine.memory[a] for a in range(30, 37)]
+                self.assertEqual(original, source)
+                self.assertEqual(result, [-value for value in source])
+
+
 class DumpTest(unittest.TestCase):
     """Диапазон дампа и JSON-файл."""
 

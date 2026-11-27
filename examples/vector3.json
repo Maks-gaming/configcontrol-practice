@@ -1,0 +1,168 @@
+[
+  {
+    "op": "load",
+    "arg": 7
+  },
+  {
+    "op": "neg"
+  },
+  {
+    "op": "store",
+    "arg": 20
+  },
+  {
+    "op": "load",
+    "arg": 14
+  },
+  {
+    "op": "store",
+    "arg": 21
+  },
+  {
+    "op": "load",
+    "arg": 21
+  },
+  {
+    "op": "neg"
+  },
+  {
+    "op": "store",
+    "arg": 22
+  },
+  {
+    "op": "load",
+    "arg": 28
+  },
+  {
+    "op": "store",
+    "arg": 23
+  },
+  {
+    "op": "load",
+    "arg": 35
+  },
+  {
+    "op": "neg"
+  },
+  {
+    "op": "store",
+    "arg": 24
+  },
+  {
+    "op": "load",
+    "arg": 42
+  },
+  {
+    "op": "store",
+    "arg": 25
+  },
+  {
+    "op": "load",
+    "arg": 49
+  },
+  {
+    "op": "neg"
+  },
+  {
+    "op": "store",
+    "arg": 26
+  },
+  {
+    "op": "load",
+    "arg": 20
+  },
+  {
+    "op": "read"
+  },
+  {
+    "op": "neg"
+  },
+  {
+    "op": "store",
+    "arg": 30
+  },
+  {
+    "op": "load",
+    "arg": 21
+  },
+  {
+    "op": "read"
+  },
+  {
+    "op": "neg"
+  },
+  {
+    "op": "store",
+    "arg": 31
+  },
+  {
+    "op": "load",
+    "arg": 22
+  },
+  {
+    "op": "read"
+  },
+  {
+    "op": "neg"
+  },
+  {
+    "op": "store",
+    "arg": 32
+  },
+  {
+    "op": "load",
+    "arg": 23
+  },
+  {
+    "op": "read"
+  },
+  {
+    "op": "neg"
+  },
+  {
+    "op": "store",
+    "arg": 33
+  },
+  {
+    "op": "load",
+    "arg": 24
+  },
+  {
+    "op": "read"
+  },
+  {
+    "op": "neg"
+  },
+  {
+    "op": "store",
+    "arg": 34
+  },
+  {
+    "op": "load",
+    "arg": 25
+  },
+  {
+    "op": "read"
+  },
+  {
+    "op": "neg"
+  },
+  {
+    "op": "store",
+    "arg": 35
+  },
+  {
+    "op": "load",
+    "arg": 26
+  },
+  {
+    "op": "read"
+  },
+  {
+    "op": "neg"
+  },
+  {
+    "op": "store",
+    "arg": 36
+  }
+]

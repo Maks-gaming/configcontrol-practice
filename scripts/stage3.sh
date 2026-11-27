@@ -4,4 +4,4 @@ set -e
 cd "$(dirname "$0")/.."
 mkdir -p out
 ./run.sh examples/copy.json out/copy.bin
-python3 -m src.interpreter out/copy.bin out/copy-dump.json 20 32
+./run.sh run out/copy.bin out/copy-dump.json 20 32
