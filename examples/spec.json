@@ -1,0 +1,6 @@
+[
+  {"op": "load", "arg": 269},
+  {"op": "read"},
+  {"op": "store", "arg": 892},
+  {"op": "neg"}
+]
