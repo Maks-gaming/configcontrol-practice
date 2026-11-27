@@ -1,8 +1,12 @@
 """Тесты разбора JSON-программы и промежуточного представления."""
 
+import tempfile
 import unittest
+from pathlib import Path
 
-from src.assembler import AssemblyError, format_ir, parse_program
+from src.assembler import AssemblyError
+from src.assembler import encode_program, format_bytes, format_ir
+from src.assembler import parse_program, write_binary
 
 
 class AssemblerTest(unittest.TestCase):
@@ -26,6 +30,32 @@ class AssemblerTest(unittest.TestCase):
         self.assertEqual(format_ir(program), "1. load: A=5, B=269")
         program = parse_program([{"op": "read"}])
         self.assertEqual(format_ir(program), "1. read: A=3")
+
+    def test_spec_bytes(self):
+        """Машинный код совпадает со всеми тестами спецификации."""
+        data = [
+            {"op": "load", "arg": 269},
+            {"op": "read"},
+            {"op": "store", "arg": 892},
+            {"op": "neg"},
+        ]
+        program = parse_program(data)
+        expected = bytes.fromhex("6D 08 00 03 E4 1B 00 00 07")
+        self.assertEqual(encode_program(program), expected)
+        lines = format_bytes(program, expected).splitlines()
+        self.assertEqual(lines[0], "0x6D, 0x08, 0x00")
+        self.assertEqual(lines[1], "0x03")
+        self.assertEqual(lines[2], "0xE4, 0x1B, 0x00, 0x00")
+        self.assertEqual(lines[3], "0x07")
+
+    def test_binary_file(self):
+        """Результат записывается в файл без текстового преобразования."""
+        program = parse_program([{"op": "load", "arg": 269}])
+        data = encode_program(program)
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "nested" / "program.bin"
+            write_binary(path, data)
+            self.assertEqual(path.read_bytes(), bytes.fromhex("6D 08 00"))
 
     def test_unknown_command(self):
         """Неизвестная операция отклоняется."""

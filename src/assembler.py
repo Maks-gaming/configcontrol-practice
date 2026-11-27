@@ -3,12 +3,13 @@
 import argparse
 import json
 import sys
+from pathlib import Path
 
 COMMANDS = {
-    "load": {"a": 5, "bits": 17},
-    "read": {"a": 3, "bits": 0},
-    "store": {"a": 4, "bits": 23},
-    "neg": {"a": 7, "bits": 0},
+    "load": {"a": 5, "bits": 17, "size": 3},
+    "read": {"a": 3, "bits": 0, "size": 1},
+    "store": {"a": 4, "bits": 23, "size": 4},
+    "neg": {"a": 7, "bits": 0, "size": 1},
 }
 
 
@@ -70,6 +71,40 @@ def format_ir(program):
     return "\n".join(lines)
 
 
+def encode_command(command):
+    """Упаковать поля A и B в машинную команду little endian."""
+    spec = COMMANDS[command["op"]]
+    value = command["a"] | (command["b"] << 3)
+    return value.to_bytes(spec["size"], byteorder="little")
+
+
+def encode_program(program):
+    """Преобразовать все команды в одну последовательность байтов."""
+    return b"".join(encode_command(command) for command in program)
+
+
+def format_bytes(program, data):
+    """Оформить байты каждой команды в формате спецификации."""
+    lines = []
+    offset = 0
+    for command in program:
+        size = COMMANDS[command["op"]]["size"]
+        part = data[offset:offset + size]
+        lines.append(", ".join(f"0x{byte:02X}" for byte in part))
+        offset += size
+    return "\n".join(lines)
+
+
+def write_binary(path, data):
+    """Создать выходную папку и записать двоичный файл."""
+    try:
+        output = Path(path)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_bytes(data)
+    except OSError as error:
+        raise AssemblyError(f"не удалось записать файл: {error}") from error
+
+
 def parse_args(argv=None):
     """Разобрать аргументы командной строки ассемблера."""
     parser = argparse.ArgumentParser(description="Ассемблер УВМ, вариант 16")
@@ -81,16 +116,20 @@ def parse_args(argv=None):
 
 
 def main(argv=None):
-    """Выполнить разбор программы и показать тестовое представление."""
+    """Ассемблировать JSON-программу и записать машинный код."""
     args = parse_args(argv)
     try:
         program = load_program(args.source)
+        data = encode_program(program)
+        write_binary(args.output, data)
     except AssemblyError as error:
         print(f"Ошибка ассемблера: {error}", file=sys.stderr)
         return 1
     if args.test:
         print(format_ir(program))
-    print(f"Разобрано команд: {len(program)}")
+        print(format_bytes(program, data))
+    print(f"Ассемблировано команд: {len(program)}")
+    print(f"Двоичный файл: {args.output}")
     return 0
 
 
