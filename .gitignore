@@ -6,8 +6,6 @@ __pycache__/
 venv/
 build/
 dist/
-out/
-*.bin
 
 # Редакторы и ОС
 .vscode/
